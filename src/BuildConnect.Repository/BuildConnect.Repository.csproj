@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\BuildConnect.DAL\BuildConnect.DAL.csproj" />
+    <ProjectReference Include="..\BuildConnect.Model\BuildConnect.Model.csproj" />
+    <ProjectReference Include="..\BuildConnect.Repository.Common\BuildConnect.Repository.Common.csproj" />
+  </ItemGroup>
+
+</Project>
