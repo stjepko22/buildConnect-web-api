@@ -1,4 +1,8 @@
+using System.Text;
 using BuildConnect.WebAPI.DependencyInjection;
+using BuildConnect.WebAPI.Authentication;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 
 namespace BuildConnect.WebAPI;
 
@@ -28,6 +32,11 @@ public sealed class Startup
 
     public void ConfigureServices(IServiceCollection services)
     {
+        var jwtOptionsSection = Configuration.GetSection(JwtOptions.SectionName);
+        services.Configure<JwtOptions>(jwtOptionsSection);
+        var jwtOptions = jwtOptionsSection.Get<JwtOptions>() ?? new JwtOptions();
+        var signingKey = Encoding.UTF8.GetBytes(jwtOptions.SigningKey);
+
         services.AddControllers();
         services.AddCors(options =>
         {
@@ -39,6 +48,22 @@ public sealed class Startup
                     .AllowAnyMethod();
             });
         });
+        services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddJwtBearer(options =>
+            {
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidateLifetime = true,
+                    ValidIssuer = jwtOptions.Issuer,
+                    ValidAudience = jwtOptions.Audience,
+                    IssuerSigningKey = new SymmetricSecurityKey(signingKey),
+                    ClockSkew = TimeSpan.Zero
+                };
+            });
+        services.AddAuthorization();
 
         services.AddDalModule();
         services.AddRepositoryModule();
@@ -53,6 +78,8 @@ public sealed class Startup
         }
 
         app.UseCors(FrontendCorsPolicyName);
+        app.UseAuthentication();
+        app.UseAuthorization();
 
         app.MapControllers();
         app.MapGet("/", () => Results.Ok(new
