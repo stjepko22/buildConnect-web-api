@@ -8,7 +8,9 @@ public static class DalDIModule
     public static IServiceCollection AddDalModule(this IServiceCollection services)
     {
         services.AddSingleton<ApplicationRuntimeInfoProvider>();
+        services.AddSingleton<InMemoryBidDataStore>();
         services.AddSingleton<InMemoryJobDataStore>();
+        services.AddSingleton<InMemoryReviewDataStore>();
 
         return services;
     }
