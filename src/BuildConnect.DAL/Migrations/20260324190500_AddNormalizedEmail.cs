@@ -1,9 +1,13 @@
+using BuildConnect.DAL;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace BuildConnect.DAL.Migrations
 {
+    [DbContext(typeof(BuildConnectDbContext))]
+    [Migration("20260324190500_AddNormalizedEmail")]
     public partial class AddNormalizedEmail : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
