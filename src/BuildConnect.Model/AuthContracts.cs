@@ -3,7 +3,7 @@ namespace BuildConnect.Model;
 public sealed record AuthAccount(
     string UserId,
     string Email,
-    string Password);
+    string PasswordHash);
 
 public sealed record LoginRequest(
     string Email,

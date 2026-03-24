@@ -101,8 +101,24 @@ public sealed class BidService : IBidService
             throw new UnauthorizedAccessException("Ne mozete prihvatiti ponudu za posao koji nije vas.");
         }
 
-        var updatedJobBids = _bidRepository
-            .GetByJobId(bid.JobId)
+        var jobBids = _bidRepository.GetByJobId(bid.JobId);
+        var acceptedBid = jobBids.FirstOrDefault(existingBid =>
+            string.Equals(existingBid.Status, BidStatuses.Accepted, StringComparison.Ordinal));
+
+        if (acceptedBid is not null)
+        {
+            if (string.Equals(acceptedBid.Id, bid.Id, StringComparison.Ordinal))
+            {
+                return jobBids
+                    .OrderByDescending(existingBid => existingBid.CreatedAt)
+                    .Select(MapToResponse)
+                    .ToArray();
+            }
+
+            throw new ArgumentException("Za ovaj posao je vec odabrana ponuda.");
+        }
+
+        var updatedJobBids = jobBids
             .Select(existingBid =>
             {
                 if (string.Equals(existingBid.Id, bid.Id, StringComparison.Ordinal))

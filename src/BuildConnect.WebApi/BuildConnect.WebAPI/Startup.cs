@@ -1,7 +1,12 @@
 using System.Text;
+using BuildConnect.DAL;
 using BuildConnect.WebAPI.DependencyInjection;
 using BuildConnect.WebAPI.Authentication;
+using BuildConnect.WebAPI.Persistence;
+using BuildConnect.Model;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
 namespace BuildConnect.WebAPI;
@@ -38,6 +43,14 @@ public sealed class Startup
         var signingKey = Encoding.UTF8.GetBytes(jwtOptions.SigningKey);
 
         services.AddControllers();
+        services.AddDbContext<BuildConnectDbContext>(options =>
+        {
+            options.UseSqlServer(
+                Configuration.GetConnectionString("BuildConnectDb"),
+                sqlOptions => sqlOptions.MigrationsAssembly(typeof(BuildConnectDbContext).Assembly.FullName));
+        });
+        services.AddScoped<BuildConnectDatabaseSeeder>();
+        services.AddScoped<IPasswordHasher<AuthAccount>, PasswordHasher<AuthAccount>>();
         services.AddCors(options =>
         {
             options.AddPolicy(FrontendCorsPolicyName, policyBuilder =>
@@ -72,6 +85,12 @@ public sealed class Startup
 
     public void Configure(WebApplication app)
     {
+        using (var scope = app.Services.CreateScope())
+        {
+            var databaseSeeder = scope.ServiceProvider.GetRequiredService<BuildConnectDatabaseSeeder>();
+            databaseSeeder.MigrateAndSeedAsync().GetAwaiter().GetResult();
+        }
+
         if (!app.Environment.IsDevelopment())
         {
             app.UseHttpsRedirection();

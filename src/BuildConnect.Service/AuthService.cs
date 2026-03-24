@@ -1,18 +1,24 @@
 using BuildConnect.Model;
 using BuildConnect.Repository.Common;
 using BuildConnect.Service.Common;
+using Microsoft.AspNetCore.Identity;
 
 namespace BuildConnect.Service;
 
 public sealed class AuthService : IAuthService
 {
     private readonly IAuthRepository _authRepository;
+    private readonly IPasswordHasher<AuthAccount> _passwordHasher;
     private readonly IUserRepository _userRepository;
 
-    public AuthService(IAuthRepository authRepository, IUserRepository userRepository)
+    public AuthService(
+        IAuthRepository authRepository,
+        IUserRepository userRepository,
+        IPasswordHasher<AuthAccount> passwordHasher)
     {
         _authRepository = authRepository;
         _userRepository = userRepository;
+        _passwordHasher = passwordHasher;
     }
 
     public AuthenticatedUserResponse Login(LoginRequest request)
@@ -21,7 +27,11 @@ public sealed class AuthService : IAuthService
 
         var normalizedEmail = request.Email.Trim();
         var account = _authRepository.GetByEmail(normalizedEmail);
-        if (account is null || !string.Equals(account.Password, request.Password, StringComparison.Ordinal))
+        var passwordVerificationResult = account is null
+            ? PasswordVerificationResult.Failed
+            : _passwordHasher.VerifyHashedPassword(account, account.PasswordHash, request.Password);
+
+        if (account is null || passwordVerificationResult == PasswordVerificationResult.Failed)
         {
             throw new UnauthorizedAccessException("Neispravna email adresa ili lozinka.");
         }
@@ -50,6 +60,8 @@ public sealed class AuthService : IAuthService
         var legalType = ResolveLegalType(role, request.LegalType);
         var displayName = $"{request.FirstName.Trim()} {request.LastName.Trim()}".Trim();
         var userId = Guid.NewGuid().ToString("N");
+        var authAccount = new AuthAccount(userId, normalizedEmail, string.Empty);
+        var passwordHash = _passwordHasher.HashPassword(authAccount, request.Password);
 
         var user = new UserProfile(
             userId,
@@ -60,10 +72,10 @@ public sealed class AuthService : IAuthService
             string.Empty,
             string.Empty,
             DateTimeOffset.UtcNow,
-            role == BuildConnectRoles.Izvodjac ? [] : null);
+            role == BuildConnectRoles.Izvodjac ? [] : null,
+            passwordHash);
 
         var createdUser = _userRepository.Create(user);
-        _authRepository.Create(new AuthAccount(createdUser.Id, normalizedEmail, request.Password));
 
         return MapToResponse(createdUser);
     }
