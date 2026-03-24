@@ -20,8 +20,17 @@ public sealed class BuildConnectDatabaseSeeder
 
     public async Task MigrateAndSeedAsync(CancellationToken cancellationToken = default)
     {
-        await _dbContext.Database.MigrateAsync(cancellationToken);
+        await MigrateAsync(cancellationToken);
+        await SeedAsync(cancellationToken);
+    }
 
+    public async Task MigrateAsync(CancellationToken cancellationToken = default)
+    {
+        await _dbContext.Database.MigrateAsync(cancellationToken);
+    }
+
+    public async Task SeedAsync(CancellationToken cancellationToken = default)
+    {
         await SeedUsersAsync(cancellationToken);
         await SeedJobsAsync(cancellationToken);
         await SeedBidsAsync(cancellationToken);

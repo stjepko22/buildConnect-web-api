@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.Options;
 
 namespace BuildConnect.WebAPI;
 
@@ -39,6 +40,7 @@ public sealed class Startup
     {
         var jwtOptionsSection = Configuration.GetSection(JwtOptions.SectionName);
         services.Configure<JwtOptions>(jwtOptionsSection);
+        services.Configure<DatabaseStartupOptions>(Configuration.GetSection(DatabaseStartupOptions.SectionName));
         var jwtOptions = jwtOptionsSection.Get<JwtOptions>() ?? new JwtOptions();
         var signingKey = Encoding.UTF8.GetBytes(jwtOptions.SigningKey);
 
@@ -85,10 +87,23 @@ public sealed class Startup
 
     public void Configure(WebApplication app)
     {
+        var databaseStartupOptions = app.Services
+            .GetRequiredService<IOptions<DatabaseStartupOptions>>()
+            .Value;
+
         using (var scope = app.Services.CreateScope())
         {
             var databaseSeeder = scope.ServiceProvider.GetRequiredService<BuildConnectDatabaseSeeder>();
-            databaseSeeder.MigrateAndSeedAsync().GetAwaiter().GetResult();
+
+            if (databaseStartupOptions.ApplyMigrationsOnStartup)
+            {
+                databaseSeeder.MigrateAsync().GetAwaiter().GetResult();
+            }
+
+            if (databaseStartupOptions.SeedOnStartup)
+            {
+                databaseSeeder.SeedAsync().GetAwaiter().GetResult();
+            }
         }
 
         if (!app.Environment.IsDevelopment())
