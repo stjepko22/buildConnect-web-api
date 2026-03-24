@@ -24,6 +24,7 @@ internal sealed class FakeAuthRepository : IAuthRepository
 internal sealed class FakeUserRepository : IUserRepository
 {
     private readonly List<UserProfile> _users = [];
+    private readonly Dictionary<string, string> _passwordHashes = new(StringComparer.Ordinal);
 
     public FakeUserRepository(params IEnumerable<UserProfile>[] userCollections)
     {
@@ -56,10 +57,16 @@ internal sealed class FakeUserRepository : IUserRepository
             .ToArray();
     }
 
-    public UserProfile Create(UserProfile user)
+    public UserProfile Create(UserProfile user, string passwordHash)
     {
         _users.Add(user);
+        _passwordHashes[user.Id] = passwordHash;
         return user;
+    }
+
+    public string? GetStoredPasswordHash(string userId)
+    {
+        return _passwordHashes.GetValueOrDefault(userId);
     }
 }
 

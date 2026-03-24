@@ -38,9 +38,10 @@ public sealed class UserRepository : IUserRepository
 
     public UserProfile? GetByEmail(string email)
     {
+        var normalizedEmail = EmailNormalizer.Normalize(email);
         var user = _dbContext.Users
             .AsNoTracking()
-            .Where(user => user.Email == email)
+            .Where(user => user.NormalizedEmail == normalizedEmail)
             .FirstOrDefault();
 
         return user is null ? null : MapToModel(user);
@@ -57,13 +58,14 @@ public sealed class UserRepository : IUserRepository
             .ToArray();
     }
 
-    public UserProfile Create(UserProfile user)
+    public UserProfile Create(UserProfile user, string passwordHash)
     {
         var entity = new UserEntity
         {
             Id = user.Id,
             Email = user.Email,
-            PasswordHash = user.PasswordHash,
+            NormalizedEmail = EmailNormalizer.Normalize(user.Email),
+            PasswordHash = passwordHash,
             DisplayName = user.DisplayName,
             Role = user.Role,
             LegalType = user.LegalType,
@@ -90,8 +92,7 @@ public sealed class UserRepository : IUserRepository
             user.Bio,
             user.Location,
             user.JoinedAt,
-            DeserializeServiceCategories(user.ServiceCategoriesJson),
-            user.PasswordHash);
+            DeserializeServiceCategories(user.ServiceCategoriesJson));
     }
 
     private static IReadOnlyCollection<string>? DeserializeServiceCategories(string? serviceCategoriesJson)

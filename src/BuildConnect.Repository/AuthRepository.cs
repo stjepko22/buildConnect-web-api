@@ -16,9 +16,11 @@ public sealed class AuthRepository : IAuthRepository
 
     public AuthAccount? GetByEmail(string email)
     {
+        var normalizedEmail = EmailNormalizer.Normalize(email);
+
         return _dbContext.Users
             .AsNoTracking()
-            .Where(user => user.Email == email)
+            .Where(user => user.NormalizedEmail == normalizedEmail)
             .Select(user => new AuthAccount(
                 user.Id,
                 user.Email,

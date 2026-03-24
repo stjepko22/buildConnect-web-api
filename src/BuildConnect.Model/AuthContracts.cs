@@ -28,3 +28,11 @@ public sealed record AuthenticatedUserResponse(
 public sealed record AuthenticatedSessionResponse(
     string AccessToken,
     AuthenticatedUserResponse User);
+
+public static class EmailNormalizer
+{
+    public static string Normalize(string email)
+    {
+        return email.Trim().ToUpperInvariant();
+    }
+}

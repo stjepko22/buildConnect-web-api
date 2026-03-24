@@ -128,6 +128,7 @@ public sealed class BuildConnectDatabaseSeeder
         {
             Id = id,
             Email = email,
+            NormalizedEmail = EmailNormalizer.Normalize(email),
             DisplayName = displayName,
             Role = role,
             LegalType = legalType,

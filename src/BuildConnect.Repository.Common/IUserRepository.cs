@@ -12,5 +12,5 @@ public interface IUserRepository
 
     IReadOnlyCollection<UserProfile> GetByRole(string role);
 
-    UserProfile Create(UserProfile user);
+    UserProfile Create(UserProfile user, string passwordHash);
 }

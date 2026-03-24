@@ -25,7 +25,8 @@ public sealed class AuthService : IAuthService
     {
         ValidateLoginRequest(request);
 
-        var normalizedEmail = request.Email.Trim();
+        var email = request.Email.Trim();
+        var normalizedEmail = EmailNormalizer.Normalize(email);
         var account = _authRepository.GetByEmail(normalizedEmail);
         var passwordVerificationResult = account is null
             ? PasswordVerificationResult.Failed
@@ -49,7 +50,8 @@ public sealed class AuthService : IAuthService
     {
         ValidateRegisterRequest(request);
 
-        var normalizedEmail = request.Email.Trim();
+        var email = request.Email.Trim();
+        var normalizedEmail = EmailNormalizer.Normalize(email);
         var existingAccount = _authRepository.GetByEmail(normalizedEmail);
         if (existingAccount is not null)
         {
@@ -60,7 +62,7 @@ public sealed class AuthService : IAuthService
         var legalType = ResolveLegalType(role, request.LegalType);
         var displayName = $"{request.FirstName.Trim()} {request.LastName.Trim()}".Trim();
         var userId = Guid.NewGuid().ToString("N");
-        var authAccount = new AuthAccount(userId, normalizedEmail, string.Empty);
+        var authAccount = new AuthAccount(userId, email, string.Empty);
         var passwordHash = _passwordHasher.HashPassword(authAccount, request.Password);
 
         var user = new UserProfile(
@@ -68,14 +70,13 @@ public sealed class AuthService : IAuthService
             displayName,
             role,
             legalType,
-            normalizedEmail,
+            email,
             string.Empty,
             string.Empty,
             DateTimeOffset.UtcNow,
-            role == BuildConnectRoles.Izvodjac ? [] : null,
-            passwordHash);
+            role == BuildConnectRoles.Izvodjac ? [] : null);
 
-        var createdUser = _userRepository.Create(user);
+        var createdUser = _userRepository.Create(user, passwordHash);
 
         return MapToResponse(createdUser);
     }

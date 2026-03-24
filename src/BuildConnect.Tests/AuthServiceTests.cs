@@ -57,11 +57,34 @@ public sealed class AuthServiceTests
             BuildConnectLegalTypes.Firma));
 
         var createdUser = userRepository.GetById(result.Id);
+        var storedPasswordHash = userRepository.GetStoredPasswordHash(result.Id);
 
         Assert.NotNull(createdUser);
         Assert.Equal("Ivan Ivic", createdUser!.DisplayName);
         Assert.Equal(BuildConnectRoles.Izvodjac, createdUser.Role);
-        Assert.False(string.IsNullOrWhiteSpace(createdUser.PasswordHash));
-        Assert.DoesNotContain("secret123", createdUser.PasswordHash, StringComparison.Ordinal);
+        Assert.False(string.IsNullOrWhiteSpace(storedPasswordHash));
+        Assert.DoesNotContain("secret123", storedPasswordHash!, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Register_RejectsDuplicateEmail_WhenOnlyCasingDiffers()
+    {
+        var authData = TestData.CreateAuthUser(BuildConnectRoles.Investitor, "investitor@test.hr", "secret123");
+        var service = new AuthService(
+            new FakeAuthRepository([authData.account]),
+            new FakeUserRepository([authData.user]),
+            new PasswordHasher<AuthAccount>());
+
+        var action = () => service.Register(new RegisterRequest(
+            "Ana",
+            "Anic",
+            "INVESTITOR@Test.hr",
+            "secret123",
+            null,
+            BuildConnectRoles.Investitor,
+            null));
+
+        var exception = Assert.Throws<ArgumentException>(action);
+        Assert.Equal("Korisnik s ovom email adresom vec postoji.", exception.Message);
     }
 }

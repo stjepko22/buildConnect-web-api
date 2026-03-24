@@ -8,8 +8,7 @@ internal static class TestData
     public static UserProfile CreateInvestitor(
         string id = "investitor-1",
         string email = "investitor@test.hr",
-        string displayName = "Marko Markovic",
-        string passwordHash = "")
+        string displayName = "Marko Markovic")
     {
         return new UserProfile(
             id,
@@ -20,15 +19,13 @@ internal static class TestData
             "Bio",
             "Zagreb",
             new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero),
-            null,
-            passwordHash);
+            null);
     }
 
     public static UserProfile CreateIzvodjac(
         string id = "izvodjac-1",
         string email = "izvodjac@test.hr",
-        string displayName = "Ivan Ivic",
-        string passwordHash = "")
+        string displayName = "Ivan Ivic")
     {
         return new UserProfile(
             id,
@@ -39,8 +36,7 @@ internal static class TestData
             "Bio",
             "Split",
             new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero),
-            ["Gradnja"],
-            passwordHash);
+            ["Gradnja"]);
     }
 
     public static Job CreateJob(
@@ -105,9 +101,8 @@ internal static class TestData
         var account = new AuthAccount(user.Id, email, string.Empty);
         var passwordHash = passwordHasher.HashPassword(account, plainPassword);
 
-        var userWithHash = user with { PasswordHash = passwordHash };
         var accountWithHash = account with { PasswordHash = passwordHash };
 
-        return (userWithHash, accountWithHash, plainPassword);
+        return (user, accountWithHash, plainPassword);
     }
 }

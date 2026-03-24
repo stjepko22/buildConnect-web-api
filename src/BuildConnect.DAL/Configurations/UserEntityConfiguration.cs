@@ -19,6 +19,10 @@ public sealed class UserEntityConfiguration : IEntityTypeConfiguration<UserEntit
             .HasMaxLength(256)
             .IsRequired();
 
+        builder.Property(user => user.NormalizedEmail)
+            .HasMaxLength(256)
+            .IsRequired();
+
         builder.Property(user => user.PasswordHash)
             .HasMaxLength(512)
             .IsRequired();
@@ -48,7 +52,7 @@ public sealed class UserEntityConfiguration : IEntityTypeConfiguration<UserEntit
         builder.Property(user => user.ServiceCategoriesJson)
             .HasColumnType("nvarchar(max)");
 
-        builder.HasIndex(user => user.Email)
+        builder.HasIndex(user => user.NormalizedEmail)
             .IsUnique();
     }
 }
