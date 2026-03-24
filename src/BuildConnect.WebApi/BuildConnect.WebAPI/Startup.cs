@@ -1,7 +1,9 @@
 using System.Text;
+using BuildConnect.DAL;
 using BuildConnect.WebAPI.DependencyInjection;
 using BuildConnect.WebAPI.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
 namespace BuildConnect.WebAPI;
@@ -38,6 +40,12 @@ public sealed class Startup
         var signingKey = Encoding.UTF8.GetBytes(jwtOptions.SigningKey);
 
         services.AddControllers();
+        services.AddDbContext<BuildConnectDbContext>(options =>
+        {
+            options.UseSqlServer(
+                Configuration.GetConnectionString("BuildConnectDb"),
+                sqlOptions => sqlOptions.MigrationsAssembly(typeof(BuildConnectDbContext).Assembly.FullName));
+        });
         services.AddCors(options =>
         {
             options.AddPolicy(FrontendCorsPolicyName, policyBuilder =>
