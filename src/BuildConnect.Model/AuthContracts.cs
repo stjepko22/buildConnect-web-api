@@ -24,3 +24,7 @@ public sealed record AuthenticatedUserResponse(
     string DisplayName,
     string Role,
     string LegalType);
+
+public sealed record AuthenticatedSessionResponse(
+    string AccessToken,
+    AuthenticatedUserResponse User);

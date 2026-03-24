@@ -1,5 +1,7 @@
 using BuildConnect.Model;
 using BuildConnect.Service.Common;
+using BuildConnect.WebAPI.Authentication;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BuildConnect.WebAPI.Controllers;
@@ -8,9 +10,6 @@ namespace BuildConnect.WebAPI.Controllers;
 [Route("api/[controller]")]
 public sealed class JobsController : ControllerBase
 {
-    private const string UserIdHeaderName = "X-User-Id";
-    private const string UserRoleHeaderName = "X-User-Role";
-
     private readonly IJobService _jobService;
 
     public JobsController(IJobService jobService)
@@ -40,15 +39,17 @@ public sealed class JobsController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize]
     [ProducesResponseType(typeof(JobResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public ActionResult<JobResponse> Post([FromBody] CreateJobRequest request)
     {
-        if (!TryBuildRequestUserContext(out var userContext, out var errorResult))
+        var userContext = User.ToRequestUserContext();
+        if (userContext is null)
         {
-            return errorResult!;
+            return Unauthorized(new { message = "Korisnicki identitet nije dostupan u tokenu." });
         }
 
         try
@@ -64,22 +65,5 @@ public sealed class JobsController : ControllerBase
         {
             return StatusCode(StatusCodes.Status403Forbidden, new { message = exception.Message });
         }
-    }
-
-    private bool TryBuildRequestUserContext(out RequestUserContext userContext, out ActionResult<JobResponse>? errorResult)
-    {
-        var userId = Request.Headers[UserIdHeaderName].ToString();
-        var userRole = Request.Headers[UserRoleHeaderName].ToString();
-
-        if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(userRole))
-        {
-            userContext = default!;
-            errorResult = Unauthorized(new { message = "Nedostaje korisnicki kontekst u zaglavljima zahtjeva." });
-            return false;
-        }
-
-        userContext = new RequestUserContext(userId.Trim(), userRole.Trim());
-        errorResult = null;
-        return true;
     }
 }
