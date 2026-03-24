@@ -21,7 +21,8 @@ public sealed record UserProfile(
     string Bio,
     string Location,
     DateTimeOffset JoinedAt,
-    IReadOnlyCollection<string>? ServiceCategories = null);
+    IReadOnlyCollection<string>? ServiceCategories = null,
+    string PasswordHash = "");
 
 public sealed record UserProfileResponse(
     string Id,

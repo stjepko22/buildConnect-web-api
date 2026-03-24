@@ -27,6 +27,10 @@ public sealed class BidEntityConfiguration : IEntityTypeConfiguration<BidEntity>
             .HasMaxLength(256)
             .IsRequired();
 
+        builder.Property(bid => bid.Amount)
+            .HasPrecision(18, 2)
+            .IsRequired();
+
         builder.Property(bid => bid.Message)
             .HasMaxLength(2000)
             .IsRequired();
