@@ -32,8 +32,7 @@ public sealed class JobEntityConfiguration : IEntityTypeConfiguration<JobEntity>
             .IsRequired();
 
         builder.Property(job => job.Budget)
-            .HasPrecision(18, 2)
-            .IsRequired();
+            .HasPrecision(18, 2);
 
         builder.Property(job => job.Deadline)
             .HasMaxLength(64)

@@ -79,7 +79,6 @@ namespace BuildConnect.DAL.Migrations
                         .HasColumnType("nvarchar(64)");
 
                     b.Property<decimal?>("Budget")
-                        .IsRequired()
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
