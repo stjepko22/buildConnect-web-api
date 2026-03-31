@@ -39,23 +39,33 @@ public sealed class BuildConnectDatabaseSeeder
 
     private async Task SeedUsersAsync(CancellationToken cancellationToken)
     {
-        if (await _dbContext.Users.AnyAsync(cancellationToken))
-        {
-            return;
-        }
-
         var users = new[]
         {
             CreateUser("investitor-1", "investitor@buildconnect.hr", "Marko Markovic", BuildConnectRoles.Investitor, BuildConnectLegalTypes.Firma, "Trazim pouzdane izvodace za projekte renovacije stanova u Zagrebu.", "Zagreb", new DateTimeOffset(2025, 1, 10, 0, 0, 0, TimeSpan.Zero), null, "invest123"),
             CreateUser("investitor-2", "ana@test.com", "Ana Anic", BuildConnectRoles.Investitor, BuildConnectLegalTypes.Firma, "Investitor s fokusom na moderne niskoenergetske kuce.", "Split", new DateTimeOffset(2025, 2, 15, 0, 0, 0, TimeSpan.Zero), null, "buildconnect-demo-123"),
+            CreateUser("investitor-test-1", "stjepko@gmail.com", "Stjepko Test Investitor", BuildConnectRoles.Investitor, BuildConnectLegalTypes.Firma, "Test investitor za razvoj i provjeru marketplace flowa.", "Zagreb", new DateTimeOffset(2026, 3, 31, 0, 0, 0, TimeSpan.Zero), null, "12345678"),
             CreateUser("izvodjac-1", "izvodjac@buildconnect.hr", "Ivan Ivic - Gradnja d.o.o.", BuildConnectRoles.Izvodjac, BuildConnectLegalTypes.Firma, "Specijalizirani za fasaderske radove i suhu gradnju. 15 godina iskustva.", "Zagreb", new DateTimeOffset(2024, 11, 20, 0, 0, 0, TimeSpan.Zero), ["Fasade", "Gradnja", "Renovacija"], "izvodjac123"),
             CreateUser("izvodjac-2", "petar@majstor.hr", "Petar Horvat", BuildConnectRoles.Izvodjac, BuildConnectLegalTypes.FizickaOsoba, "Samostalni keramicar s fokusom na kupaonice i kuhinje.", "Split", new DateTimeOffset(2024, 10, 12, 0, 0, 0, TimeSpan.Zero), ["Keramika", "Renovacija"], "buildconnect-demo-123"),
             CreateUser("izvodjac-3", "info@napon.hr", "Elektro Napon d.o.o.", BuildConnectRoles.Izvodjac, BuildConnectLegalTypes.Firma, "Elektro tim za stambene i poslovne objekte.", "Zadar", new DateTimeOffset(2024, 9, 3, 0, 0, 0, TimeSpan.Zero), ["Elektro"], "buildconnect-demo-123"),
             CreateUser("izvodjac-4", "kontakt@krovplus.hr", "Krov Plus Obrt", BuildConnectRoles.Izvodjac, BuildConnectLegalTypes.Firma, "Krovopokrivacki i limarski radovi na novogradnji i adaptacijama.", "Rijeka", new DateTimeOffset(2024, 8, 19, 0, 0, 0, TimeSpan.Zero), ["Krovovi", "Stolarija"], "buildconnect-demo-123"),
-            CreateUser("izvodjac-5", "nikola@vodomajstor.hr", "Nikola Vukovic", BuildConnectRoles.Izvodjac, BuildConnectLegalTypes.FizickaOsoba, "Vodoinstalater i monter sustava grijanja.", "Osijek", new DateTimeOffset(2024, 7, 1, 0, 0, 0, TimeSpan.Zero), ["Vodoinstalacije", "Grijanje"], "buildconnect-demo-123")
+            CreateUser("izvodjac-5", "nikola@vodomajstor.hr", "Nikola Vukovic", BuildConnectRoles.Izvodjac, BuildConnectLegalTypes.FizickaOsoba, "Vodoinstalater i monter sustava grijanja.", "Osijek", new DateTimeOffset(2024, 7, 1, 0, 0, 0, TimeSpan.Zero), ["Vodoinstalacije", "Grijanje"], "buildconnect-demo-123"),
+            CreateUser("izvodjac-test-1", "stjepan@gmail.com", "Stjepan Test Izvodjac", BuildConnectRoles.Izvodjac, BuildConnectLegalTypes.FizickaOsoba, "Test izvodjac za razvoj, slanje ponuda i provjeru detalja posla.", "Sisak", new DateTimeOffset(2026, 3, 31, 0, 0, 0, TimeSpan.Zero), ["Gradnja", "Renovacija"], "12345678")
         };
 
-        await _dbContext.Users.AddRangeAsync(users, cancellationToken);
+        var existingUserIds = await _dbContext.Users
+            .Select(user => user.Id)
+            .ToListAsync(cancellationToken);
+
+        var usersToAdd = users
+            .Where(user => !existingUserIds.Contains(user.Id))
+            .ToArray();
+
+        if (usersToAdd.Length == 0)
+        {
+            return;
+        }
+
+        await _dbContext.Users.AddRangeAsync(usersToAdd, cancellationToken);
         await _dbContext.SaveChangesAsync(cancellationToken);
     }
 
