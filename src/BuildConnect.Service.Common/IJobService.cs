@@ -9,4 +9,6 @@ public interface IJobService
     JobResponse? GetJobById(string id);
 
     JobResponse CreateJob(CreateJobRequest request, RequestUserContext userContext);
+
+    JobResponse? UpdateJob(string id, UpdateJobRequest request, RequestUserContext userContext);
 }

@@ -66,4 +66,39 @@ public sealed class JobsController : ControllerBase
             return StatusCode(StatusCodes.Status403Forbidden, new { message = exception.Message });
         }
     }
+
+    [HttpPut("{id}")]
+    [Authorize]
+    [ProducesResponseType(typeof(JobResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public ActionResult<JobResponse> Put(string id, [FromBody] UpdateJobRequest request)
+    {
+        var userContext = User.ToRequestUserContext();
+        if (userContext is null)
+        {
+            return Unauthorized(new { message = "Korisnicki identitet nije dostupan u tokenu." });
+        }
+
+        try
+        {
+            var updatedJob = _jobService.UpdateJob(id, request, userContext);
+            if (updatedJob is null)
+            {
+                return NotFound(new { message = "Posao nije pronadjen." });
+            }
+
+            return Ok(updatedJob);
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+        catch (UnauthorizedAccessException exception)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = exception.Message });
+        }
+    }
 }

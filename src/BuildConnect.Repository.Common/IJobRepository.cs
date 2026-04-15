@@ -9,4 +9,6 @@ public interface IJobRepository
     Job? GetById(string id);
 
     Job Create(Job job);
+
+    Job? Update(Job job);
 }

@@ -59,3 +59,11 @@ public sealed record CreateJobRequest(
     string Location,
     decimal? Budget,
     string Deadline);
+
+public sealed record UpdateJobRequest(
+    string Title,
+    string Description,
+    string Category,
+    string Location,
+    decimal? Budget,
+    string Deadline);

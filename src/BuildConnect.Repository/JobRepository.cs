@@ -55,6 +55,25 @@ public sealed class JobRepository : IJobRepository
         return MapToModel(entity);
     }
 
+    public Job? Update(Job job)
+    {
+        var entity = _dbContext.Jobs.FirstOrDefault(existingJob => existingJob.Id == job.Id);
+        if (entity is null)
+        {
+            return null;
+        }
+
+        entity.Title = job.Title;
+        entity.Description = job.Description;
+        entity.Category = job.Category;
+        entity.Location = job.Location;
+        entity.Budget = job.Budget;
+        entity.Deadline = job.Deadline;
+
+        _dbContext.SaveChanges();
+        return MapToModel(entity);
+    }
+
     private static Job MapToModel(JobEntity job)
     {
         return new Job(
