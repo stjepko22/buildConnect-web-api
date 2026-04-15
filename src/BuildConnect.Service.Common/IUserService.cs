@@ -9,4 +9,6 @@ public interface IUserService
     IReadOnlyCollection<UserProfileResponse> GetContractors();
 
     UserProfileResponse? GetUserById(string id);
+
+    UserProfileResponse UpdateCurrentUserProfile(UpdateUserProfileRequest request, RequestUserContext userContext);
 }

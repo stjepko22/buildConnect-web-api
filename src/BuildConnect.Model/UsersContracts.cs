@@ -33,3 +33,10 @@ public sealed record UserProfileResponse(
     string Location,
     DateTimeOffset JoinedAt,
     IReadOnlyCollection<string>? ServiceCategories = null);
+
+public sealed record UpdateUserProfileRequest(
+    string DisplayName,
+    string LegalType,
+    string Bio,
+    string Location,
+    IReadOnlyCollection<string>? ServiceCategories = null);

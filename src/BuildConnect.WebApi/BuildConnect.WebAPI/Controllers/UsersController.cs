@@ -1,5 +1,7 @@
 using BuildConnect.Model;
 using BuildConnect.Service.Common;
+using BuildConnect.WebAPI.Authentication;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BuildConnect.WebAPI.Controllers;
@@ -34,5 +36,33 @@ public sealed class UsersController : ControllerBase
         }
 
         return Ok(user);
+    }
+
+    [HttpPut("me")]
+    [Authorize]
+    [ProducesResponseType(typeof(UserProfileResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public ActionResult<UserProfileResponse> UpdateCurrentUser([FromBody] UpdateUserProfileRequest request)
+    {
+        var userContext = User.ToRequestUserContext();
+        if (userContext is null)
+        {
+            return Unauthorized(new { message = "Korisnicki identitet nije dostupan u tokenu." });
+        }
+
+        try
+        {
+            return Ok(_userService.UpdateCurrentUserProfile(request, userContext));
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(new { message = exception.Message });
+        }
     }
 }

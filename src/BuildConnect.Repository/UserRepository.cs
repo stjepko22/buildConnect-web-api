@@ -81,6 +81,28 @@ public sealed class UserRepository : IUserRepository
         return MapToModel(entity);
     }
 
+    public UserProfile UpdateProfile(UserProfile user)
+    {
+        var entity = _dbContext.Users
+            .Where(existingUser => existingUser.Id == user.Id)
+            .FirstOrDefault();
+
+        if (entity is null)
+        {
+            throw new KeyNotFoundException("Korisnik nije pronadjen.");
+        }
+
+        entity.DisplayName = user.DisplayName;
+        entity.LegalType = user.LegalType;
+        entity.Bio = user.Bio;
+        entity.Location = user.Location;
+        entity.ServiceCategoriesJson = SerializeServiceCategories(user.ServiceCategories);
+
+        _dbContext.SaveChanges();
+
+        return MapToModel(entity);
+    }
+
     private static UserProfile MapToModel(UserEntity user)
     {
         return new UserProfile(
