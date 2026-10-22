@@ -40,14 +40,46 @@ public sealed class AuthController : ControllerBase
     }
 
     [HttpPost("register")]
-    [ProducesResponseType(typeof(AuthenticatedSessionResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(RegistrationResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public ActionResult<AuthenticatedSessionResponse> Register([FromBody] RegisterRequest request)
+    public ActionResult<RegistrationResponse> Register([FromBody] RegisterRequest request)
     {
         try
         {
-            var user = _authService.Register(request);
-            return Created($"/api/users/{user.Id}", BuildSessionResponse(user));
+            var registration = _authService.Register(request);
+            return Created($"/api/auth/verify-email?email={Uri.EscapeDataString(registration.Email)}", registration);
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+    }
+
+    [HttpPost("verify-email")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public IActionResult VerifyEmail([FromBody] VerifyEmailRequest request)
+    {
+        try
+        {
+            return _authService.VerifyEmail(request)
+                ? NoContent()
+                : BadRequest(new { message = "Verifikacijski link nije valjan ili je istekao." });
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+    }
+
+    [HttpPost("resend-verification-email")]
+    [ProducesResponseType(typeof(RegistrationResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public ActionResult<RegistrationResponse> ResendVerificationEmail([FromBody] ResendVerificationEmailRequest request)
+    {
+        try
+        {
+            return Ok(_authService.ResendVerificationEmail(request));
         }
         catch (ArgumentException exception)
         {

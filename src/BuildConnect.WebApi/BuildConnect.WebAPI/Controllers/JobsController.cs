@@ -19,9 +19,11 @@ public sealed class JobsController : ControllerBase
 
     [HttpGet]
     [ProducesResponseType(typeof(IReadOnlyCollection<JobResponse>), StatusCodes.Status200OK)]
-    public ActionResult<IReadOnlyCollection<JobResponse>> Get()
+    public ActionResult<IReadOnlyCollection<JobResponse>> Get(
+        [FromQuery(Name = "q")] string? query,
+        [FromQuery(Name = "category")] string[]? categories)
     {
-        return Ok(_jobService.GetJobs());
+        return Ok(_jobService.GetJobs(new GetJobsRequest(query, categories)));
     }
 
     [HttpGet("{id}")]
@@ -91,6 +93,111 @@ public sealed class JobsController : ControllerBase
             }
 
             return Ok(updatedJob);
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+        catch (UnauthorizedAccessException exception)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = exception.Message });
+        }
+    }
+
+    [HttpPost("{id}/close")]
+    [Authorize]
+    [ProducesResponseType(typeof(JobResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public ActionResult<JobResponse> Close(string id)
+    {
+        var userContext = User.ToRequestUserContext();
+        if (userContext is null)
+        {
+            return Unauthorized(new { message = "Korisnicki identitet nije dostupan u tokenu." });
+        }
+
+        try
+        {
+            var closedJob = _jobService.CloseJob(id, userContext);
+            if (closedJob is null)
+            {
+                return NotFound(new { message = "Posao nije pronadjen." });
+            }
+
+            return Ok(closedJob);
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+        catch (UnauthorizedAccessException exception)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = exception.Message });
+        }
+    }
+
+    [HttpPost("{id}/complete")]
+    [Authorize]
+    [ProducesResponseType(typeof(JobResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public ActionResult<JobResponse> Complete(string id)
+    {
+        var userContext = User.ToRequestUserContext();
+        if (userContext is null)
+        {
+            return Unauthorized(new { message = "Korisnicki identitet nije dostupan u tokenu." });
+        }
+
+        try
+        {
+            var completedJob = _jobService.CompleteJob(id, userContext);
+            if (completedJob is null)
+            {
+                return NotFound(new { message = "Posao nije pronadjen." });
+            }
+
+            return Ok(completedJob);
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+        catch (UnauthorizedAccessException exception)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = exception.Message });
+        }
+    }
+
+    [HttpDelete("{id}")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public ActionResult Delete(string id)
+    {
+        var userContext = User.ToRequestUserContext();
+        if (userContext is null)
+        {
+            return Unauthorized(new { message = "Korisnicki identitet nije dostupan u tokenu." });
+        }
+
+        try
+        {
+            var isDeleted = _jobService.DeleteJob(id, userContext);
+            if (!isDeleted)
+            {
+                return NotFound(new { message = "Posao nije pronadjen." });
+            }
+
+            return NoContent();
         }
         catch (ArgumentException exception)
         {

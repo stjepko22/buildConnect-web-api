@@ -42,6 +42,10 @@ public sealed class JobEntityConfiguration : IEntityTypeConfiguration<JobEntity>
             .HasMaxLength(64)
             .IsRequired();
 
+        builder.Property(job => job.Status)
+            .HasMaxLength(32)
+            .IsRequired();
+
         builder.HasIndex(job => job.InvestitorId);
         builder.HasIndex(job => job.CreatedAt);
 

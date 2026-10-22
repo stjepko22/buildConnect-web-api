@@ -29,7 +29,8 @@ public sealed class UsersController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public ActionResult<UserProfileResponse> GetById(string id)
     {
-        var user = _userService.GetUserById(id);
+        var userContext = User.Identity?.IsAuthenticated == true ? User.ToRequestUserContext() : null;
+        var user = _userService.GetUserById(id, userContext);
         if (user is null)
         {
             return NotFound(new { message = "Korisnik nije pronadjen." });

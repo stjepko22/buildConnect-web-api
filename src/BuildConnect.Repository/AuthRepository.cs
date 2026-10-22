@@ -24,7 +24,8 @@ public sealed class AuthRepository : IAuthRepository
             .Select(user => new AuthAccount(
                 user.Id,
                 user.Email,
-                user.PasswordHash))
+                user.PasswordHash,
+                user.IsEmailVerified))
             .FirstOrDefault();
     }
 }

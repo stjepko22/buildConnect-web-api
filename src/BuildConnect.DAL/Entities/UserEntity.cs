@@ -10,11 +10,21 @@ public sealed class UserEntity
 
     public string PasswordHash { get; set; } = string.Empty;
 
+    public bool IsEmailVerified { get; set; }
+
+    public string? EmailVerificationToken { get; set; }
+
+    public DateTimeOffset? EmailVerificationTokenExpiresAt { get; set; }
+
     public string DisplayName { get; set; } = string.Empty;
 
     public string Role { get; set; } = string.Empty;
 
     public string LegalType { get; set; } = string.Empty;
+
+    public string? Phone { get; set; }
+
+    public bool IsPhoneVisible { get; set; }
 
     public string Bio { get; set; } = string.Empty;
 

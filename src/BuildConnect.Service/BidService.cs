@@ -49,6 +49,16 @@ public sealed class BidService : IBidService
             throw new ArgumentException("Posao nije pronadjen.");
         }
 
+        if (!string.Equals(job.Status, JobStatuses.Open, StringComparison.Ordinal))
+        {
+            throw new ArgumentException("Ponude je moguce slati samo na otvorene oglase.");
+        }
+
+        if (string.Equals(job.InvestitorId, userContext.UserId, StringComparison.Ordinal))
+        {
+            throw new ArgumentException("Ne mozete poslati ponudu na vlastiti oglas.");
+        }
+
         var jobBids = _bidRepository.GetByJobId(normalizedJobId);
         var hasExistingActiveBid = jobBids.Any(bid =>
             string.Equals(bid.ContractorId, userContext.UserId, StringComparison.Ordinal) &&
@@ -131,6 +141,7 @@ public sealed class BidService : IBidService
             .ToArray();
 
         _bidRepository.ReplaceForJob(bid.JobId, updatedJobBids);
+        _jobRepository.UpdateStatus(bid.JobId, JobStatuses.InProgress);
 
         return updatedJobBids
             .OrderByDescending(existingBid => existingBid.CreatedAt)

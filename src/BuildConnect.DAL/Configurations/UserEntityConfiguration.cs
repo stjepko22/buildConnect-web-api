@@ -27,6 +27,12 @@ public sealed class UserEntityConfiguration : IEntityTypeConfiguration<UserEntit
             .HasMaxLength(512)
             .IsRequired();
 
+        builder.Property(user => user.IsEmailVerified)
+            .IsRequired();
+
+        builder.Property(user => user.EmailVerificationToken)
+            .HasMaxLength(128);
+
         builder.Property(user => user.DisplayName)
             .HasMaxLength(256)
             .IsRequired();
@@ -37,6 +43,13 @@ public sealed class UserEntityConfiguration : IEntityTypeConfiguration<UserEntit
 
         builder.Property(user => user.LegalType)
             .HasMaxLength(32)
+            .IsRequired();
+
+        builder.Property(user => user.Phone)
+            .HasMaxLength(32);
+
+        builder.Property(user => user.IsPhoneVisible)
+            .HasDefaultValue(false)
             .IsRequired();
 
         builder.Property(user => user.Bio)

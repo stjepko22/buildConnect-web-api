@@ -76,6 +76,7 @@ public sealed class ReviewService : IReviewService
             DateTimeOffset.UtcNow);
 
         var createdReview = _reviewRepository.Create(review);
+        _jobRepository.UpdateStatus(normalizedJobId, JobStatuses.Completed);
         return MapToResponse(createdReview);
     }
 

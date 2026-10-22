@@ -53,4 +53,36 @@ public sealed class BidServiceTests
         var exception = Assert.Throws<ArgumentException>(action);
         Assert.Equal("Za ovaj posao je vec odabrana ponuda.", exception.Message);
     }
+
+    [Fact]
+    public void CreateBid_Throws_WhenJobIsClosed()
+    {
+        var service = new BidService(
+            new FakeBidRepository(),
+            new FakeJobRepository([TestData.CreateJob(status: JobStatuses.Closed)]));
+
+        var action = () => service.CreateBid(
+            "posao-1",
+            new CreateBidRequest(2500m, 10, "Mozemo preuzeti posao vrlo brzo."),
+            new RequestUserContext("izvodjac-1", BuildConnectRoles.Izvodjac, "Ivan Ivic"));
+
+        var exception = Assert.Throws<ArgumentException>(action);
+        Assert.Equal("Ponude je moguce slati samo na otvorene oglase.", exception.Message);
+    }
+
+    [Fact]
+    public void CreateBid_Throws_WhenContractorTriesToBidOnOwnJob()
+    {
+        var service = new BidService(
+            new FakeBidRepository(),
+            new FakeJobRepository([TestData.CreateJob(investitorId: "izvodjac-1")]));
+
+        var action = () => service.CreateBid(
+            "posao-1",
+            new CreateBidRequest(2500m, 10, "Mozemo preuzeti posao vrlo brzo."),
+            new RequestUserContext("izvodjac-1", BuildConnectRoles.Izvodjac, "Ivan Ivic"));
+
+        var exception = Assert.Throws<ArgumentException>(action);
+        Assert.Equal("Ne mozete poslati ponudu na vlastiti oglas.", exception.Message);
+    }
 }

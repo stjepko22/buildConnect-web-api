@@ -15,10 +15,30 @@ public sealed class JobRepository : IJobRepository
         _dbContext = dbContext;
     }
 
-    public IReadOnlyCollection<Job> GetAll()
+    public IReadOnlyCollection<Job> GetAll(GetJobsRequest? request = null)
     {
-        return _dbContext.Jobs
-            .AsNoTracking()
+        var jobsQuery = _dbContext.Jobs.AsNoTracking();
+        var query = request?.Query?.Trim();
+        if (!string.IsNullOrWhiteSpace(query))
+        {
+            jobsQuery = jobsQuery.Where(job =>
+                job.Title.Contains(query) ||
+                job.Description.Contains(query) ||
+                job.Location.Contains(query) ||
+                job.Category.Contains(query));
+        }
+
+        var categories = request?.Categories?
+            .Where(category => !string.IsNullOrWhiteSpace(category))
+            .Select(category => category.Trim())
+            .ToArray();
+
+        if (categories is { Length: > 0 })
+        {
+            jobsQuery = jobsQuery.Where(job => categories.Contains(job.Category));
+        }
+
+        return jobsQuery
             .OrderByDescending(job => job.CreatedAt)
             .ToArray()
             .Select(MapToModel)
@@ -46,7 +66,8 @@ public sealed class JobRepository : IJobRepository
             Budget = job.Budget,
             Deadline = job.Deadline,
             InvestitorId = job.InvestitorId,
-            CreatedAt = job.CreatedAt
+            CreatedAt = job.CreatedAt,
+            Status = job.Status
         };
 
         _dbContext.Jobs.Add(entity);
@@ -69,9 +90,36 @@ public sealed class JobRepository : IJobRepository
         entity.Location = job.Location;
         entity.Budget = job.Budget;
         entity.Deadline = job.Deadline;
+        entity.Status = job.Status;
 
         _dbContext.SaveChanges();
         return MapToModel(entity);
+    }
+
+    public Job? UpdateStatus(string id, string status)
+    {
+        var entity = _dbContext.Jobs.FirstOrDefault(existingJob => existingJob.Id == id);
+        if (entity is null)
+        {
+            return null;
+        }
+
+        entity.Status = status;
+        _dbContext.SaveChanges();
+        return MapToModel(entity);
+    }
+
+    public bool Delete(string id)
+    {
+        var entity = _dbContext.Jobs.FirstOrDefault(existingJob => existingJob.Id == id);
+        if (entity is null)
+        {
+            return false;
+        }
+
+        _dbContext.Jobs.Remove(entity);
+        _dbContext.SaveChanges();
+        return true;
     }
 
     private static Job MapToModel(JobEntity job)
@@ -85,6 +133,7 @@ public sealed class JobRepository : IJobRepository
             job.Budget,
             job.Deadline,
             job.InvestitorId,
-            job.CreatedAt);
+            job.CreatedAt,
+            job.Status);
     }
 }

@@ -1,8 +1,11 @@
+using BuildConnect.Service.Common;
 using BuildConnect.WebAPI;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace BuildConnect.Tests.Support;
 
@@ -22,6 +25,11 @@ public sealed class IntegrationTestWebApplicationFactory : WebApplicationFactory
             {
                 ["ConnectionStrings:BuildConnectDb"] = ConnectionString
             });
+        });
+        builder.ConfigureServices(services =>
+        {
+            services.RemoveAll<IEmailVerificationSender>();
+            services.AddSingleton<IEmailVerificationSender>(new FakeEmailVerificationSender());
         });
     }
 

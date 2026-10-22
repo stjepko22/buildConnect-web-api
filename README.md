@@ -26,6 +26,25 @@ Health:
 
 - `http://localhost:56602/api/health`
 
+## Potvrda e-maila
+
+Registracija stvara račun koji se može prijaviti nakon potvrde e-mail adrese.
+Potvrdna poveznica vrijedi 24 sata, a korisnik može zatražiti novo slanje.
+Ako slanje ne uspije, račun ostaje spremljen, a odgovor vraća
+`isVerificationEmailSent: false`.
+
+Resend API ključ ne spremajte u datoteke koje ulaze u Git. Za lokalni
+development koristite .NET User Secrets (komanda iz korijena backend repozitorija):
+
+```powershell
+dotnet user-secrets set "Resend:ApiKey" "<RESEND_API_KEY>" --project src/BuildConnect.WebApi/BuildConnect.WebAPI/BuildConnect.WebAPI.csproj
+```
+
+User Secrets automatski se učitavaju u `Development` okruženju. Na produkciji
+postavite varijablu okruženja `Resend__ApiKey`. Podesite i `Resend__From` na
+dopuštenu adresu pošiljatelja te `Email__ClientBaseUrl` na javnu adresu web aplikacije.
+Razvojna vrijednost te adrese je `http://localhost:3000`.
+
 ## Baza
 
 Development connection string:

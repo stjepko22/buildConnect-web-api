@@ -28,6 +28,27 @@ public static class JobCategories
     }
 }
 
+public static class JobStatuses
+{
+    public const string Open = "OPEN";
+    public const string Closed = "CLOSED";
+    public const string InProgress = "IN_PROGRESS";
+    public const string Completed = "COMPLETED";
+
+    public static readonly string[] All =
+    [
+        Open,
+        Closed,
+        InProgress,
+        Completed
+    ];
+
+    public static bool IsSupported(string status)
+    {
+        return All.Contains(status, StringComparer.Ordinal);
+    }
+}
+
 public sealed record RequestUserContext(string UserId, string Role, string? DisplayName = null);
 
 public sealed record Job(
@@ -39,7 +60,8 @@ public sealed record Job(
     decimal? Budget,
     string Deadline,
     string InvestitorId,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt,
+    string Status);
 
 public sealed record JobResponse(
     string Id,
@@ -50,7 +72,12 @@ public sealed record JobResponse(
     decimal? Budget,
     string Deadline,
     string InvestitorId,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt,
+    string Status);
+
+public sealed record GetJobsRequest(
+    string? Query = null,
+    IReadOnlyCollection<string>? Categories = null);
 
 public sealed record CreateJobRequest(
     string Title,

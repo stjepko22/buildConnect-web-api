@@ -21,7 +21,9 @@ public sealed record UserProfile(
     string Bio,
     string Location,
     DateTimeOffset JoinedAt,
-    IReadOnlyCollection<string>? ServiceCategories = null);
+    IReadOnlyCollection<string>? ServiceCategories = null,
+    string? Phone = null,
+    bool IsPhoneVisible = false);
 
 public sealed record UserProfileResponse(
     string Id,
@@ -32,11 +34,21 @@ public sealed record UserProfileResponse(
     string Bio,
     string Location,
     DateTimeOffset JoinedAt,
-    IReadOnlyCollection<string>? ServiceCategories = null);
+    IReadOnlyCollection<string>? ServiceCategories = null,
+    string? Phone = null,
+    bool IsPhoneVisible = false);
+
+public sealed record GetContractorsRequest(
+    string? Query = null,
+    IReadOnlyCollection<string>? Categories = null,
+    string? Location = null,
+    string? LegalType = null);
 
 public sealed record UpdateUserProfileRequest(
     string DisplayName,
     string LegalType,
     string Bio,
     string Location,
-    IReadOnlyCollection<string>? ServiceCategories = null);
+    IReadOnlyCollection<string>? ServiceCategories = null,
+    string? Phone = null,
+    bool IsPhoneVisible = false);

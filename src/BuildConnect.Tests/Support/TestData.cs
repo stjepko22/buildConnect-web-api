@@ -41,7 +41,8 @@ internal static class TestData
 
     public static Job CreateJob(
         string id = "posao-1",
-        string investitorId = "investitor-1")
+        string investitorId = "investitor-1",
+        string status = JobStatuses.Open)
     {
         return new Job(
             id,
@@ -52,7 +53,8 @@ internal static class TestData
             3500m,
             "2026-05-01",
             investitorId,
-            new DateTimeOffset(2026, 2, 1, 0, 0, 0, TimeSpan.Zero));
+            new DateTimeOffset(2026, 2, 1, 0, 0, 0, TimeSpan.Zero),
+            status);
     }
 
     public static Bid CreateBid(
@@ -98,7 +100,7 @@ internal static class TestData
         var user = role == BuildConnectRoles.Investitor
             ? CreateInvestitor(email: email)
             : CreateIzvodjac(email: email);
-        var account = new AuthAccount(user.Id, email, string.Empty);
+        var account = new AuthAccount(user.Id, email, string.Empty, true);
         var passwordHash = passwordHasher.HashPassword(account, plainPassword);
 
         var accountWithHash = account with { PasswordHash = passwordHash };

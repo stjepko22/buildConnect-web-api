@@ -3,7 +3,8 @@ namespace BuildConnect.Model;
 public sealed record AuthAccount(
     string UserId,
     string Email,
-    string PasswordHash);
+    string PasswordHash,
+    bool IsEmailVerified);
 
 public sealed record LoginRequest(
     string Email,
@@ -23,11 +24,24 @@ public sealed record AuthenticatedUserResponse(
     string Email,
     string DisplayName,
     string Role,
-    string LegalType);
+    string LegalType,
+    string? Phone = null,
+    bool IsPhoneVisible = false);
 
 public sealed record AuthenticatedSessionResponse(
     string AccessToken,
     AuthenticatedUserResponse User);
+
+public sealed record RegistrationResponse(
+    string Email,
+    bool IsVerificationEmailSent);
+
+public sealed record VerifyEmailRequest(
+    string Email,
+    string Token);
+
+public sealed record ResendVerificationEmailRequest(
+    string Email);
 
 public static class EmailNormalizer
 {

@@ -45,6 +45,35 @@ public sealed class AuthenticationFlowIntegrationTests : IClassFixture<Integrati
     }
 
     [Fact]
+    public async Task GetJobs_FiltersJobs_ByQueryAndCategory()
+    {
+        var response = await _client.GetAsync("/api/jobs?q=fasad&category=Fasade");
+        var jobs = await response.ReadRequiredJsonAsync<JobResponse[]>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotEmpty(jobs);
+        Assert.All(jobs, job => Assert.Equal("Fasade", job.Category));
+        Assert.All(jobs, job =>
+            Assert.Contains(
+                "fasad",
+                string.Join(' ', job.Title, job.Description, job.Location, job.Category),
+                StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task GetContractors_FiltersContractors_ByQueryCategoryLocationAndLegalType()
+    {
+        var response = await _client.GetAsync("/api/contractors?q=elektro&category=Elektro&location=Zadar&legalType=FIRMA");
+        var contractors = await response.ReadRequiredJsonAsync<UserProfileResponse[]>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotEmpty(contractors);
+        Assert.All(contractors, contractor => Assert.Equal("Zadar", contractor.Location));
+        Assert.All(contractors, contractor => Assert.Equal(BuildConnectLegalTypes.Firma, contractor.LegalType));
+        Assert.All(contractors, contractor => Assert.Contains("Elektro", contractor.ServiceCategories ?? []));
+    }
+
+    [Fact]
     public async Task GetDashboard_ReturnsInvestorDashboard_ForAuthenticatedUser()
     {
         var loginResponse = await _client.PostAsJsonAsync("/api/auth/login", new LoginRequest(
@@ -64,6 +93,7 @@ public sealed class AuthenticationFlowIntegrationTests : IClassFixture<Integrati
         Assert.NotEmpty(dashboard.JobActivities!);
         Assert.NotNull(dashboard.RecommendedContractors);
     }
+
     [Fact]
     public async Task ProtectedEndpoint_CreatesJob_WithValidJwtToken()
     {
@@ -90,5 +120,175 @@ public sealed class AuthenticationFlowIntegrationTests : IClassFixture<Integrati
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         Assert.Equal("Integration posao", createdJob.Title);
         Assert.Equal(session.User.Id, createdJob.InvestitorId);
+    }
+
+    [Fact]
+    public async Task ProtectedEndpoint_UpdatesCurrentUserProfile_WithValidJwtToken()
+    {
+        var loginResponse = await _client.PostAsJsonAsync("/api/auth/login", new LoginRequest(
+            "izvodjac@buildconnect.hr",
+            "izvodjac123"));
+        var session = await loginResponse.ReadRequiredJsonAsync<AuthenticatedSessionResponse>();
+
+        using var request = new HttpRequestMessage(HttpMethod.Put, "/api/users/me")
+        {
+            Content = JsonContent.Create(new UpdateUserProfileRequest(
+                "Novo Ime Izvodjaca",
+                BuildConnectLegalTypes.Firma,
+                "Azurirani profil za integration test.",
+                "Osijek",
+                ["Elektro", "Fasade"],
+                "0910001111",
+                true))
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", session.AccessToken);
+
+        var response = await _client.SendAsync(request);
+        var updatedProfile = await response.ReadRequiredJsonAsync<UserProfileResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("Novo Ime Izvodjaca", updatedProfile.DisplayName);
+        Assert.Equal("0910001111", updatedProfile.Phone);
+        Assert.True(updatedProfile.IsPhoneVisible);
+        Assert.Equal("Osijek", updatedProfile.Location);
+        Assert.Equal(["Elektro", "Fasade"], updatedProfile.ServiceCategories);
+    }
+
+    [Fact]
+    public async Task ProtectedEndpoint_UpdatesOwnedJob_WithValidJwtToken()
+    {
+        var loginResponse = await _client.PostAsJsonAsync("/api/auth/login", new LoginRequest(
+            "investitor@buildconnect.hr",
+            "invest123"));
+        var session = await loginResponse.ReadRequiredJsonAsync<AuthenticatedSessionResponse>();
+
+        using var request = new HttpRequestMessage(HttpMethod.Put, "/api/jobs/posao-3")
+        {
+            Content = JsonContent.Create(new UpdateJobRequest(
+                "Azuriran integration posao",
+                "Azurirani detaljan opis za integration test.",
+                "Renovacija",
+                "Velika Gorica",
+                4700m,
+                "2026-08-01"))
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", session.AccessToken);
+
+        var response = await _client.SendAsync(request);
+        var updatedJob = await response.ReadRequiredJsonAsync<JobResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("Azuriran integration posao", updatedJob.Title);
+        Assert.Equal("Renovacija", updatedJob.Category);
+        Assert.Equal("Velika Gorica", updatedJob.Location);
+        Assert.Equal(session.User.Id, updatedJob.InvestitorId);
+    }
+
+    [Fact]
+    public async Task ProtectedEndpoints_CloseAndDeleteOwnedOpenJob_WithValidJwtToken()
+    {
+        var loginResponse = await _client.PostAsJsonAsync("/api/auth/login", new LoginRequest(
+            "investitor@buildconnect.hr",
+            "invest123"));
+        var session = await loginResponse.ReadRequiredJsonAsync<AuthenticatedSessionResponse>();
+
+        using var createRequest = new HttpRequestMessage(HttpMethod.Post, "/api/jobs")
+        {
+            Content = JsonContent.Create(new CreateJobRequest(
+                "Lifecycle integration posao",
+                "Detaljan opis oglasa za close i delete integration test.",
+                "Fasade",
+                "Zapresic",
+                3100m,
+                "2026-09-01"))
+        };
+        createRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", session.AccessToken);
+
+        var createResponse = await _client.SendAsync(createRequest);
+        var createdJob = await createResponse.ReadRequiredJsonAsync<JobResponse>();
+
+        using var closeRequest = new HttpRequestMessage(HttpMethod.Post, $"/api/jobs/{createdJob.Id}/close")
+        {
+            Content = JsonContent.Create(new { })
+        };
+        closeRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", session.AccessToken);
+
+        var closeResponse = await _client.SendAsync(closeRequest);
+        var closedJob = await closeResponse.ReadRequiredJsonAsync<JobResponse>();
+
+        using var deleteRequest = new HttpRequestMessage(HttpMethod.Delete, $"/api/jobs/{createdJob.Id}");
+        deleteRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", session.AccessToken);
+
+        var deleteResponse = await _client.SendAsync(deleteRequest);
+
+        Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
+        Assert.Equal(JobStatuses.Open, createdJob.Status);
+        Assert.Equal(HttpStatusCode.OK, closeResponse.StatusCode);
+        Assert.Equal(JobStatuses.Closed, closedJob.Status);
+        Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task ProtectedEndpoint_CompletesInProgressJob_ForAcceptedContractor()
+    {
+        var investorLoginResponse = await _client.PostAsJsonAsync("/api/auth/login", new LoginRequest(
+            "investitor@buildconnect.hr",
+            "invest123"));
+        var investorSession = await investorLoginResponse.ReadRequiredJsonAsync<AuthenticatedSessionResponse>();
+
+        using var createJobRequest = new HttpRequestMessage(HttpMethod.Post, "/api/jobs")
+        {
+            Content = JsonContent.Create(new CreateJobRequest(
+                "Integration posao za zavrsetak",
+                "Detaljan opis oglasa za complete flow integration test.",
+                "Fasade",
+                "Karlovac",
+                3600m,
+                "2026-10-01"))
+        };
+        createJobRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", investorSession.AccessToken);
+
+        var createJobResponse = await _client.SendAsync(createJobRequest);
+        var createdJob = await createJobResponse.ReadRequiredJsonAsync<JobResponse>();
+
+        var contractorLoginResponse = await _client.PostAsJsonAsync("/api/auth/login", new LoginRequest(
+            "izvodjac@buildconnect.hr",
+            "izvodjac123"));
+        var contractorSession = await contractorLoginResponse.ReadRequiredJsonAsync<AuthenticatedSessionResponse>();
+
+        using var createBidRequest = new HttpRequestMessage(HttpMethod.Post, $"/api/jobs/{createdJob.Id}/bids")
+        {
+            Content = JsonContent.Create(new CreateBidRequest(
+                3400m,
+                12,
+                "Mozemo preuzeti posao vrlo brzo i kvalitetno ga zavrsiti."))
+        };
+        createBidRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", contractorSession.AccessToken);
+
+        var createBidResponse = await _client.SendAsync(createBidRequest);
+        var createdBid = await createBidResponse.ReadRequiredJsonAsync<BidResponse>();
+
+        using var acceptBidRequest = new HttpRequestMessage(HttpMethod.Post, $"/api/bids/{createdBid.Id}/accept")
+        {
+            Content = JsonContent.Create(new { })
+        };
+        acceptBidRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", investorSession.AccessToken);
+
+        var acceptBidResponse = await _client.SendAsync(acceptBidRequest);
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, $"/api/jobs/{createdJob.Id}/complete")
+        {
+            Content = JsonContent.Create(new { })
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", contractorSession.AccessToken);
+
+        var response = await _client.SendAsync(request);
+        var completedJob = await response.ReadRequiredJsonAsync<JobResponse>();
+
+        Assert.Equal(HttpStatusCode.Created, createJobResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.Created, createBidResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, acceptBidResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(JobStatuses.Completed, completedJob.Status);
     }
 }

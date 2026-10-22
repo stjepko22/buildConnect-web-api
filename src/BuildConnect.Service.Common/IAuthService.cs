@@ -6,5 +6,9 @@ public interface IAuthService
 {
     AuthenticatedUserResponse Login(LoginRequest request);
 
-    AuthenticatedUserResponse Register(RegisterRequest request);
+    RegistrationResponse Register(RegisterRequest request);
+
+    bool VerifyEmail(VerifyEmailRequest request);
+
+    RegistrationResponse ResendVerificationEmail(ResendVerificationEmailRequest request);
 }

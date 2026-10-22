@@ -27,9 +27,10 @@ public sealed class ReviewServiceTests
     public void CreateReview_CreatesReview_ForAcceptedBid()
     {
         var repository = new FakeReviewRepository();
+        var jobRepository = new FakeJobRepository([TestData.CreateJob(investitorId: "investitor-1", status: JobStatuses.InProgress)]);
         var service = new ReviewService(
             repository,
-            new FakeJobRepository([TestData.CreateJob(investitorId: "investitor-1")]),
+            jobRepository,
             new FakeBidRepository([TestData.CreateBid(contractorId: "izvodjac-5", status: BidStatuses.Accepted)]));
 
         var result = service.CreateReview(
@@ -39,5 +40,6 @@ public sealed class ReviewServiceTests
 
         Assert.Equal("izvodjac-5", result.RevieweeId);
         Assert.Single(repository.GetAll());
+        Assert.Equal(JobStatuses.Completed, jobRepository.GetById("posao-1")!.Status);
     }
 }

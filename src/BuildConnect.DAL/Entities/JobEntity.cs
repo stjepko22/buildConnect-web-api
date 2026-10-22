@@ -20,6 +20,8 @@ public sealed class JobEntity
 
     public DateTimeOffset CreatedAt { get; set; }
 
+    public string Status { get; set; } = string.Empty;
+
     public UserEntity? Investitor { get; set; }
 
     public ICollection<BidEntity> Bids { get; set; } = [];

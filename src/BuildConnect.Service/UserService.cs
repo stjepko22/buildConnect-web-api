@@ -21,19 +21,21 @@ public sealed class UserService : IUserService
             : _userRepository.GetByRole(role.Trim());
 
         return users
-            .Select(MapToResponse)
+            .Select(user => MapToResponse(user))
             .ToArray();
     }
 
-    public IReadOnlyCollection<UserProfileResponse> GetContractors()
+    public IReadOnlyCollection<UserProfileResponse> GetContractors(GetContractorsRequest? request = null)
     {
+        var normalizedRequest = NormalizeContractorRequest(request);
+
         return _userRepository
-            .GetByRole(BuildConnectRoles.Izvodjac)
-            .Select(MapToResponse)
+            .GetContractors(normalizedRequest)
+            .Select(user => MapToResponse(user))
             .ToArray();
     }
 
-    public UserProfileResponse? GetUserById(string id)
+    public UserProfileResponse? GetUserById(string id, RequestUserContext? userContext = null)
     {
         if (string.IsNullOrWhiteSpace(id))
         {
@@ -41,7 +43,9 @@ public sealed class UserService : IUserService
         }
 
         var user = _userRepository.GetById(id.Trim());
-        return user is null ? null : MapToResponse(user);
+        return user is null
+            ? null
+            : MapToResponse(user, string.Equals(user.Id, userContext?.UserId, StringComparison.Ordinal));
     }
 
     public UserProfileResponse UpdateCurrentUserProfile(UpdateUserProfileRequest request, RequestUserContext userContext)
@@ -55,20 +59,25 @@ public sealed class UserService : IUserService
             throw new KeyNotFoundException("Korisnik nije pronadjen.");
         }
 
+        var phone = request.Phone is null ? currentUser.Phone : NormalizePhone(request.Phone);
         var updatedUser = currentUser with
         {
             DisplayName = RequireValue(request.DisplayName, "Ime i prezime"),
             LegalType = RequireLegalType(request.LegalType),
+            Phone = phone,
+            IsPhoneVisible = !string.IsNullOrWhiteSpace(phone) && request.IsPhoneVisible,
             Bio = NormalizeBio(request.Bio),
             Location = RequireValue(request.Location, "Lokacija"),
             ServiceCategories = NormalizeServiceCategories(request.ServiceCategories, currentUser.Role)
         };
 
-        return MapToResponse(_userRepository.UpdateProfile(updatedUser));
+        return MapToResponse(_userRepository.UpdateProfile(updatedUser), includePrivatePhone: true);
     }
 
-    private static UserProfileResponse MapToResponse(UserProfile user)
+    private static UserProfileResponse MapToResponse(UserProfile user, bool includePrivatePhone = false)
     {
+        var isPhoneVisible = !string.IsNullOrWhiteSpace(user.Phone) && user.IsPhoneVisible;
+
         return new UserProfileResponse(
             user.Id,
             user.DisplayName,
@@ -78,7 +87,9 @@ public sealed class UserService : IUserService
             user.Bio,
             user.Location,
             user.JoinedAt,
-            user.ServiceCategories);
+            user.ServiceCategories,
+            isPhoneVisible || includePrivatePhone ? user.Phone : null,
+            isPhoneVisible);
     }
 
     private static string RequireValue(string? value, string fieldName)
@@ -108,6 +119,22 @@ public sealed class UserService : IUserService
         return bio?.Trim() ?? string.Empty;
     }
 
+    private static string? NormalizePhone(string? phone)
+    {
+        var normalizedPhone = phone?.Trim();
+        if (string.IsNullOrWhiteSpace(normalizedPhone))
+        {
+            return null;
+        }
+
+        if (normalizedPhone.Length < 6 || normalizedPhone.Length > 32)
+        {
+            throw new ArgumentException("Kontakt broj mora imati od 6 do 32 znaka.");
+        }
+
+        return normalizedPhone;
+    }
+
     private static IReadOnlyCollection<string>? NormalizeServiceCategories(IReadOnlyCollection<string>? serviceCategories, string role)
     {
         if (!string.Equals(role, BuildConnectRoles.Izvodjac, StringComparison.Ordinal))
@@ -129,5 +156,39 @@ public sealed class UserService : IUserService
             .ToArray();
 
         return normalizedCategories.Length == 0 ? null : normalizedCategories;
+    }
+
+    private static GetContractorsRequest NormalizeContractorRequest(GetContractorsRequest? request)
+    {
+        var normalizedQuery = string.IsNullOrWhiteSpace(request?.Query)
+            ? null
+            : request.Query.Trim();
+
+        var normalizedLocation = string.IsNullOrWhiteSpace(request?.Location)
+            ? null
+            : request.Location.Trim();
+
+        var normalizedLegalType = string.IsNullOrWhiteSpace(request?.LegalType)
+            ? null
+            : request.LegalType.Trim();
+
+        if (normalizedLegalType is not null && !BuildConnectLegalTypes.IsSupported(normalizedLegalType))
+        {
+            normalizedLegalType = null;
+        }
+
+        var normalizedCategories = request?.Categories?
+            .Select(category => category?.Trim())
+            .Where(category => !string.IsNullOrWhiteSpace(category))
+            .Distinct(StringComparer.Ordinal)
+            .Where(category => JobCategories.IsSupported(category!))
+            .Cast<string>()
+            .ToArray();
+
+        return new GetContractorsRequest(
+            normalizedQuery,
+            normalizedCategories is { Length: > 0 } ? normalizedCategories : null,
+            normalizedLocation,
+            normalizedLegalType);
     }
 }
