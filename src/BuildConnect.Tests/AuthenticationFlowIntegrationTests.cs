@@ -45,6 +45,26 @@ public sealed class AuthenticationFlowIntegrationTests : IClassFixture<Integrati
     }
 
     [Fact]
+    public async Task GetDashboard_ReturnsInvestorDashboard_ForAuthenticatedUser()
+    {
+        var loginResponse = await _client.PostAsJsonAsync("/api/auth/login", new LoginRequest(
+            "investitor@buildconnect.hr",
+            "invest123"));
+        var session = await loginResponse.ReadRequiredJsonAsync<AuthenticatedSessionResponse>();
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/dashboard");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", session.AccessToken);
+
+        var response = await _client.SendAsync(request);
+        var dashboard = await response.ReadRequiredJsonAsync<DashboardResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.True(dashboard.Summary.JobsCount > 0);
+        Assert.NotNull(dashboard.JobActivities);
+        Assert.NotEmpty(dashboard.JobActivities!);
+        Assert.NotNull(dashboard.RecommendedContractors);
+    }
+    [Fact]
     public async Task ProtectedEndpoint_CreatesJob_WithValidJwtToken()
     {
         var loginResponse = await _client.PostAsJsonAsync("/api/auth/login", new LoginRequest(
