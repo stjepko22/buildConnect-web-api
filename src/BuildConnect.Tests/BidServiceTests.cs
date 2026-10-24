@@ -28,7 +28,8 @@ public sealed class BidServiceTests
         var selectedBid = TestData.CreateBid(id: "bid-1", contractorId: "izvodjac-1");
         var otherBid = TestData.CreateBid(id: "bid-2", contractorId: "izvodjac-2");
         var repository = new FakeBidRepository([selectedBid, otherBid]);
-        var service = new BidService(repository, new FakeJobRepository([TestData.CreateJob(investitorId: "investitor-1")]));
+        var jobRepository = new FakeJobRepository([TestData.CreateJob(investitorId: "investitor-1")]);
+        var service = new BidService(repository, jobRepository);
 
         var result = service.AcceptBid("bid-1", new RequestUserContext("investitor-1", BuildConnectRoles.Investitor));
 
@@ -37,6 +38,51 @@ public sealed class BidServiceTests
 
         Assert.Equal(BidStatuses.Accepted, acceptedBid.Status);
         Assert.Equal(BidStatuses.Rejected, rejectedBid.Status);
+        Assert.Equal(JobStatuses.InProgress, jobRepository.GetById("posao-1")!.Status);
+    }
+
+    [Theory]
+    [InlineData(JobStatuses.Closed)]
+    [InlineData(JobStatuses.InProgress)]
+    [InlineData(JobStatuses.Completed)]
+    public void AcceptBid_ThrowsWithoutChangingBidsOrJob_WhenJobIsNotOpen(string status)
+    {
+        var selectedBid = TestData.CreateBid(id: "bid-1", contractorId: "izvodjac-1");
+        var otherBid = TestData.CreateBid(id: "bid-2", contractorId: "izvodjac-2");
+        var repository = new FakeBidRepository([selectedBid, otherBid]);
+        var job = TestData.CreateJob(status: status);
+        var jobRepository = new FakeJobRepository([job]);
+        var service = new BidService(repository, jobRepository);
+
+        var action = () => service.AcceptBid("bid-1", new RequestUserContext("investitor-1", BuildConnectRoles.Investitor));
+
+        var exception = Assert.Throws<ArgumentException>(action);
+        Assert.Equal("Ponude je moguce prihvatiti samo na otvorene oglase.", exception.Message);
+        Assert.Equal(selectedBid, repository.GetById("bid-1"));
+        Assert.Equal(otherBid, repository.GetById("bid-2"));
+        Assert.Equal(job, jobRepository.GetById("posao-1"));
+    }
+
+    [Theory]
+    [InlineData(JobStatuses.InProgress)]
+    [InlineData(JobStatuses.Completed)]
+    public void AcceptBid_ReturnsExistingResultWithoutChangingJob_WhenSameBidIsAlreadyAccepted(string status)
+    {
+        var acceptedBid = TestData.CreateBid(id: "bid-1", status: BidStatuses.Accepted);
+        var rejectedBid = TestData.CreateBid(id: "bid-2", contractorId: "izvodjac-2", status: BidStatuses.Rejected);
+        var repository = new FakeBidRepository([acceptedBid, rejectedBid]);
+        var job = TestData.CreateJob(status: status);
+        var jobRepository = new FakeJobRepository([job]);
+        var service = new BidService(repository, jobRepository);
+
+        var result = service.AcceptBid("bid-1", new RequestUserContext("investitor-1", BuildConnectRoles.Investitor));
+
+        Assert.Equal(2, result.Count);
+        Assert.Equal(BidStatuses.Accepted, result.Single(bid => bid.Id == "bid-1").Status);
+        Assert.Equal(BidStatuses.Rejected, result.Single(bid => bid.Id == "bid-2").Status);
+        Assert.Equal(acceptedBid, repository.GetById("bid-1"));
+        Assert.Equal(rejectedBid, repository.GetById("bid-2"));
+        Assert.Equal(job, jobRepository.GetById("posao-1"));
     }
 
     [Fact]

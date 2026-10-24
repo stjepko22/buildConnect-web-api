@@ -229,7 +229,7 @@ public sealed class AuthenticationFlowIntegrationTests : IClassFixture<Integrati
     }
 
     [Fact]
-    public async Task ProtectedEndpoint_CompletesInProgressJob_ForAcceptedContractor()
+    public async Task ProtectedEndpoints_AllowOwnerReview_OnlyAfterAcceptedContractorCompletesJob()
     {
         var investorLoginResponse = await _client.PostAsJsonAsync("/api/auth/login", new LoginRequest(
             "investitor@buildconnect.hr",
@@ -276,6 +276,28 @@ public sealed class AuthenticationFlowIntegrationTests : IClassFixture<Integrati
 
         var acceptBidResponse = await _client.SendAsync(acceptBidRequest);
 
+        Assert.Equal(HttpStatusCode.Created, createJobResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.Created, createBidResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, acceptBidResponse.StatusCode);
+
+        var reviewRequest = new CreateReviewRequest(5, "Vrlo kvalitetno i profesionalno odradjen posao.");
+        using var earlyReviewRequest = new HttpRequestMessage(HttpMethod.Post, $"/api/jobs/{createdJob.Id}/reviews")
+        {
+            Content = JsonContent.Create(reviewRequest)
+        };
+        earlyReviewRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", investorSession.AccessToken);
+
+        using var earlyReviewResponse = await _client.SendAsync(earlyReviewRequest);
+        Assert.Equal(HttpStatusCode.BadRequest, earlyReviewResponse.StatusCode);
+        var earlyReviewError = await earlyReviewResponse.ReadRequiredJsonAsync<Dictionary<string, string>>();
+        Assert.Equal("Recenziju mozete ostaviti tek nakon zavrsetka posla.", earlyReviewError["message"]);
+
+        using var inProgressResponse = await _client.GetAsync($"/api/jobs/{createdJob.Id}");
+        var inProgressJob = await inProgressResponse.ReadRequiredJsonAsync<JobResponse>();
+        Assert.Equal(JobStatuses.InProgress, inProgressJob.Status);
+        using var reviewsBeforeCompletionResponse = await _client.GetAsync($"/api/reviews?jobId={createdJob.Id}");
+        Assert.Empty(await reviewsBeforeCompletionResponse.ReadRequiredJsonAsync<ReviewResponse[]>());
+
         using var request = new HttpRequestMessage(HttpMethod.Post, $"/api/jobs/{createdJob.Id}/complete")
         {
             Content = JsonContent.Create(new { })
@@ -285,10 +307,36 @@ public sealed class AuthenticationFlowIntegrationTests : IClassFixture<Integrati
         var response = await _client.SendAsync(request);
         var completedJob = await response.ReadRequiredJsonAsync<JobResponse>();
 
-        Assert.Equal(HttpStatusCode.Created, createJobResponse.StatusCode);
-        Assert.Equal(HttpStatusCode.Created, createBidResponse.StatusCode);
-        Assert.Equal(HttpStatusCode.OK, acceptBidResponse.StatusCode);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal(JobStatuses.Completed, completedJob.Status);
+
+        using var completedReviewRequest = new HttpRequestMessage(HttpMethod.Post, $"/api/jobs/{createdJob.Id}/reviews")
+        {
+            Content = JsonContent.Create(reviewRequest)
+        };
+        completedReviewRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", investorSession.AccessToken);
+
+        using var completedReviewResponse = await _client.SendAsync(completedReviewRequest);
+        Assert.Equal(HttpStatusCode.Created, completedReviewResponse.StatusCode);
+        var review = await completedReviewResponse.ReadRequiredJsonAsync<ReviewResponse>();
+        Assert.Equal(createdJob.Id, review.JobId);
+        Assert.Equal(investorSession.User.Id, review.ReviewerId);
+        Assert.Equal(contractorSession.User.Id, review.RevieweeId);
+        Assert.Equal(reviewRequest.Rating, review.Rating);
+        Assert.Equal(reviewRequest.Comment, review.Comment);
+
+        using var duplicateReviewRequest = new HttpRequestMessage(HttpMethod.Post, $"/api/jobs/{createdJob.Id}/reviews")
+        {
+            Content = JsonContent.Create(reviewRequest)
+        };
+        duplicateReviewRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", investorSession.AccessToken);
+        using var duplicateReviewResponse = await _client.SendAsync(duplicateReviewRequest);
+        Assert.Equal(HttpStatusCode.BadRequest, duplicateReviewResponse.StatusCode);
+
+        using var reviewsResponse = await _client.GetAsync($"/api/reviews?jobId={createdJob.Id}");
+        var savedReview = Assert.Single(await reviewsResponse.ReadRequiredJsonAsync<ReviewResponse[]>());
+        Assert.Equal(review, savedReview);
+        using var jobAfterReviewResponse = await _client.GetAsync($"/api/jobs/{createdJob.Id}");
+        Assert.Equal(completedJob, await jobAfterReviewResponse.ReadRequiredJsonAsync<JobResponse>());
     }
 }

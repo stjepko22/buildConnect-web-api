@@ -128,6 +128,11 @@ public sealed class BidService : IBidService
             throw new ArgumentException("Za ovaj posao je vec odabrana ponuda.");
         }
 
+        if (!string.Equals(job.Status, JobStatuses.Open, StringComparison.Ordinal))
+        {
+            throw new ArgumentException("Ponude je moguce prihvatiti samo na otvorene oglase.");
+        }
+
         var updatedJobBids = jobBids
             .Select(existingBid =>
             {

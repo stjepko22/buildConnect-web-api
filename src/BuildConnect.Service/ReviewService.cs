@@ -63,7 +63,12 @@ public sealed class ReviewService : IReviewService
 
         if (acceptedBid is null)
         {
-          throw new ArgumentException("Recenziju mozete ostaviti tek nakon prihvacene ponude.");
+            throw new ArgumentException("Recenziju mozete ostaviti tek nakon prihvacene ponude.");
+        }
+
+        if (!string.Equals(job.Status, JobStatuses.Completed, StringComparison.Ordinal))
+        {
+            throw new ArgumentException("Recenziju mozete ostaviti tek nakon zavrsetka posla.");
         }
 
         var review = new Review(
@@ -76,7 +81,6 @@ public sealed class ReviewService : IReviewService
             DateTimeOffset.UtcNow);
 
         var createdReview = _reviewRepository.Create(review);
-        _jobRepository.UpdateStatus(normalizedJobId, JobStatuses.Completed);
         return MapToResponse(createdReview);
     }
 
