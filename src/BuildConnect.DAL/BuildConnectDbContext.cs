@@ -12,6 +12,8 @@ public sealed class BuildConnectDbContext : DbContext
 
     public DbSet<UserEntity> Users => Set<UserEntity>();
 
+    public DbSet<UserProfileImageEntity> UserProfileImages => Set<UserProfileImageEntity>();
+
     public DbSet<JobEntity> Jobs => Set<JobEntity>();
 
     public DbSet<BidEntity> Bids => Set<BidEntity>();

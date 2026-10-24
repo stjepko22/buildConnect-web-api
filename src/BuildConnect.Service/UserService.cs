@@ -89,7 +89,9 @@ public sealed class UserService : IUserService
             user.JoinedAt,
             user.ServiceCategories,
             isPhoneVisible || includePrivatePhone ? user.Phone : null,
-            isPhoneVisible);
+            isPhoneVisible,
+            user.ProfileImageUrl,
+            user.CoverImageUrl);
     }
 
     private static string RequireValue(string? value, string fieldName)

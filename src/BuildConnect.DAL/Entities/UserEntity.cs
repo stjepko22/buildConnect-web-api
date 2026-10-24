@@ -34,6 +34,10 @@ public sealed class UserEntity
 
     public string? ServiceCategoriesJson { get; set; }
 
+    public string? ProfileImageVersion { get; set; }
+
+    public string? CoverImageVersion { get; set; }
+
     public ICollection<JobEntity> Jobs { get; set; } = [];
 
     public ICollection<BidEntity> SubmittedBids { get; set; } = [];

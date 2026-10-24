@@ -23,6 +23,7 @@ public static class ServiceDIModule
         services.AddScoped<IJobService, JobService>();
         services.AddScoped<IReviewService, ReviewService>();
         services.AddScoped<IUserService, UserService>();
+        services.AddScoped<IUserProfileImageService, UserProfileImageService>();
 
         return services;
     }

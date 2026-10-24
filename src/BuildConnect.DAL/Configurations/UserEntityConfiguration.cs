@@ -65,6 +65,12 @@ public sealed class UserEntityConfiguration : IEntityTypeConfiguration<UserEntit
         builder.Property(user => user.ServiceCategoriesJson)
             .HasColumnType("nvarchar(max)");
 
+        builder.Property(user => user.ProfileImageVersion)
+            .HasMaxLength(32);
+
+        builder.Property(user => user.CoverImageVersion)
+            .HasMaxLength(32);
+
         builder.HasIndex(user => user.NormalizedEmail)
             .IsUnique();
     }

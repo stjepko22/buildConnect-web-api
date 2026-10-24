@@ -230,7 +230,14 @@ public sealed class UserRepository : IUserRepository
             user.JoinedAt,
             DeserializeServiceCategories(user.ServiceCategoriesJson),
             user.Phone,
-            user.IsPhoneVisible);
+            user.IsPhoneVisible,
+            GetImageUrl(user.Id, UserProfileImageKinds.Profile, user.ProfileImageVersion),
+            GetImageUrl(user.Id, UserProfileImageKinds.Cover, user.CoverImageVersion));
+    }
+
+    private static string? GetImageUrl(string userId, string kind, string? version)
+    {
+        return version is null ? null : $"/api/users/{Uri.EscapeDataString(userId)}/images/{kind}?v={version}";
     }
 
     private static IReadOnlyCollection<string>? DeserializeServiceCategories(string? serviceCategoriesJson)

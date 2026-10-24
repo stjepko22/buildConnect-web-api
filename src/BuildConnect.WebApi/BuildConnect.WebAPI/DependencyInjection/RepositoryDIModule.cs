@@ -14,6 +14,7 @@ public static class RepositoryDIModule
         services.AddScoped<IJobRepository, JobRepository>();
         services.AddScoped<IReviewRepository, ReviewRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IUserProfileImageRepository, UserProfileImageRepository>();
 
         return services;
     }

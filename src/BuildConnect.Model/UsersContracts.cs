@@ -23,7 +23,9 @@ public sealed record UserProfile(
     DateTimeOffset JoinedAt,
     IReadOnlyCollection<string>? ServiceCategories = null,
     string? Phone = null,
-    bool IsPhoneVisible = false);
+    bool IsPhoneVisible = false,
+    string? ProfileImageUrl = null,
+    string? CoverImageUrl = null);
 
 public sealed record UserProfileResponse(
     string Id,
@@ -36,7 +38,9 @@ public sealed record UserProfileResponse(
     DateTimeOffset JoinedAt,
     IReadOnlyCollection<string>? ServiceCategories = null,
     string? Phone = null,
-    bool IsPhoneVisible = false);
+    bool IsPhoneVisible = false,
+    string? ProfileImageUrl = null,
+    string? CoverImageUrl = null);
 
 public sealed record GetContractorsRequest(
     string? Query = null,

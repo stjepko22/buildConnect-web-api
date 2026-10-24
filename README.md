@@ -66,6 +66,24 @@ Izvan developmenta je to po defaultu iskljuceno:
 
 - `src/BuildConnect.WebApi/BuildConnect.WebAPI/appsettings.json`
 
+## Profilna i naslovna fotografija
+
+- `POST /api/users/me/images/profile` i `/cover`: autorizirani multipart zahtjev s poljem `file`.
+- `DELETE /api/users/me/images/profile` i `/cover`: uklanjanje vlastite fotografije.
+- Oba zahtjeva vracaju cijeli vlasnikov profil, ukljucujuci privatni kontakt broj.
+- Javna polja `profileImageUrl` i `coverImageUrl` su opcionalna; `null` znaci da fotografija nije postavljena.
+- `GET /api/users/{id}/images/profile` i `/cover` javno vraca fotografiju. URL sadrzi verziju `?v=...` koja se mijenja pri zamjeni.
+
+Prihvacaju se JPG/JPEG, PNG i WebP do 5 MiB po fotografiji. Provjerava se MIME tip,
+potpis datoteke i stvarna velicina procitanog sadrzaja. SVG se ne prihvaca.
+Fotografije su javni dio profila, a mijenjati ih moze samo vlasnik prijavljen JWT tokenom.
+
+Sadrzaj fotografija sprema se u SQL tablicu `UserProfileImages`, odvojeno od `Users`.
+Pretraga i direktorij ucitavaju samo verzije URL-ova, bez binarnog sadrzaja.
+Svaka slika i njezina verzija na profilu spremaju se u jednoj transakciji.
+Nije potrebna mapa za upload ni dodatni servis za datoteke; ukljucite tablicu u backup baze.
+Prije koristenja treba primijeniti migraciju `AddUserProfileImages` (u developmentu pri ponovnom pokretanju API-ja).
+
 ## Demo login
 
 - `investitor@buildconnect.hr` / `invest123`
